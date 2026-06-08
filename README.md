@@ -125,19 +125,20 @@ The images below demonstrate that the infrastructure deployment, pipeline execut
 
 ### A. Successful CI/CD Pipeline Execution
 Shows the GitHub Actions pipeline successfully completing the Terraform validation, deployment execution, and service health check verification.
-![Successful CI/CD Pipeline](screenshots/successful_pipeline.png)
+![Successful CI/CD Pipeline](screenshots/Successful%20CICD%20pipeline%20execution.png)
 
 ### B. Successful Terraform Deployment
 Shows the terminal or console output from `terraform apply` confirming successful provisioning of VPC, security group, and EC2 instance.
-![Successful Terraform Deployment](screenshots/terraform_deployment.png)
+![Successful Terraform Deployment](screenshots/Terraform%20deployment.png)
 
 ### C. Grafana Dashboards displaying CPU, Memory, Disk, and Network Metrics
 Shows live system utilization stats rendering dynamically on the imported System Observability Dashboard.
-![Grafana Dashboard Metrics](screenshots/grafana_dashboard.png)
+![Grafana Dashboard Metrics](screenshots/Grafana%20dashboards.png)
 
 ### D. Loki Log Visualization
 Shows the log stream panel populated with logs routed from `syslog` and `auth.log` using Loki.
-![Loki Log Visualization](screenshots/loki_logs.png)
+![Loki Log Visualization Part 1](screenshots/Loki%20log%20visualization%20Part%201.png)
+![Loki Log Visualization Part 2](screenshots/Loki%20log%20visualization%20Part%202.png)
 
 ---
 
