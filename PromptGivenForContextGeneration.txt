@@ -5,7 +5,7 @@ Now Write a prompt to perform the below assignment task using reference project 
 Give me prompt in a code block/code box format.
 
 make the prompt with details. I will use this prompt as a context file of the project. 
-* make the prompt to perform all the task.
+* make the prompt to perform all the task given below task modlue 8.
 * every time a change is made, the ai should perform checking of all its feature again.
 * For reference specially follow D:\1_Office_Document\4. Training\DevOps\Ostad\Assignment8\ReferenceProjects\mahmud_assignment_7 project pattern as i have done this project my self. get its dna and build the project accordingly. tell builder ai accordingly.
 
