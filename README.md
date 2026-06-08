@@ -133,7 +133,7 @@ Shows the terminal or console output from `terraform apply` confirming successfu
 
 ### C. Grafana Dashboards displaying CPU, Memory, Disk, and Network Metrics
 Shows live system utilization stats rendering dynamically on the imported System Observability Dashboard.
-![Grafana Dashboard Metrics](screenshots/Grafana%20dashboards.png?v=2)
+![Grafana Dashboard Metrics](screenshots/Grafana_dashboards_v2.png)
 
 ### D. Loki Log Visualization
 Shows the log stream panel populated with logs routed from `syslog` and `auth.log` using Loki.
