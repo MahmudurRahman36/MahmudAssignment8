@@ -1,0 +1,24 @@
+# Secrets & Key Files
+*.pem
+*.key
+*.pub
+secret.tfvars
+terraform.tfvars
+
+# Terraform Files
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+.terraform.lock.hcl
+
+# System / IDE Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# OS-specific temporary files
+ehthumbs.db
+[Dd]esktop.ini

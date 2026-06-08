@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'devops-monitoring-server'
+    environment: 'production'
+
+scrape_configs:
+  # Prometheus Self-Metrics
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          role: 'monitoring'
+
+  # Node Exporter (System Metrics of the server itself)
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+        labels:
+          server: 'monitoring-server'
+          role: 'system'
+          tier: 'infrastructure'

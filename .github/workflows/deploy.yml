@@ -1,0 +1,135 @@
+name: Deploy Observability Stack to AWS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DEPLOY_PATH: /home/ubuntu/mahmud-monitoring
+  AWS_REGION: ap-south-1
+
+jobs:
+  validate-terraform:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.5.0
+
+    - name: Terraform Format Check
+      run: |
+        cd terraform/environments/prod
+        terraform fmt -check -recursive ../../modules || true
+        terraform fmt -check
+
+    - name: Terraform Init & Validate
+      run: |
+        cd terraform/environments/prod
+        terraform init -backend=false
+        terraform validate
+
+  deploy-monitoring:
+    name: Deploy Telemetry Stack via SSH
+    needs: validate-terraform
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup SSH Agent
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+    - name: Configure SSH Config
+      run: |
+        mkdir -p ~/.ssh
+        cat >> ~/.ssh/config <<EOF
+        Host *
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+        EOF
+        chmod 600 ~/.ssh/config
+
+    - name: Verify SSH Connection
+      run: |
+        echo "Testing SSH connection to Monitoring server..."
+        ssh ubuntu@${{ secrets.EC2_MONITORING_HOST }} "echo 'SSH Connection OK!'"
+
+    - name: Synchronize Repository and Deploy
+      run: |
+        echo "=========================================="
+        echo "Deploying to Monitoring Server"
+        echo "=========================================="
+        ssh ubuntu@${{ secrets.EC2_MONITORING_HOST }} << 'ENDSSH'
+          set -e
+          
+          # Clone or Pull repository
+          if [ ! -d "${{ env.DEPLOY_PATH }}" ]; then
+            echo "Cloning repository..."
+            git clone https://github.com/${{ github.repository }}.git ${{ env.DEPLOY_PATH }}
+          else
+            echo "Updating repository..."
+            cd ${{ env.DEPLOY_PATH }}
+            git remote set-url origin https://github.com/${{ github.repository }}.git || true
+            git fetch origin
+            git reset --hard origin/main
+            git clean -fd
+          fi
+          
+          # Adjust ownership to ubuntu user
+          sudo chown -R ubuntu:ubuntu ${{ env.DEPLOY_PATH }}
+          
+          # Run the installation script
+          cd ${{ env.DEPLOY_PATH }}
+          chmod +x monitoring/scripts/setup-monitoring.sh
+          sudo ./monitoring/scripts/setup-monitoring.sh
+        ENDSSH
+
+    - name: Verify Service Health
+      run: |
+        echo "=========================================="
+        echo "Verifying Observability Stack Health"
+        echo "=========================================="
+        ssh ubuntu@${{ secrets.EC2_MONITORING_HOST }} << 'ENDSSH'
+          set -e
+          
+          echo "Waiting for services to settle..."
+          sleep 5
+          
+          # Check Prometheus liveness
+          echo "Checking Prometheus health..."
+          PROM_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9090/-/ready || echo "500")
+          if [ "$PROM_STATUS" = "200" ]; then
+            echo "✅ Prometheus is UP & Healthy!"
+          else
+            echo "❌ Prometheus health check returned $PROM_STATUS"
+            exit 1
+          fi
+          
+          # Check Loki liveness
+          echo "Checking Loki health..."
+          LOKI_STATUS=$(curl -s http://localhost:3100/ready || echo "not ready")
+          if [ "$LOKI_STATUS" = "ready" ]; then
+            echo "✅ Loki is UP & Healthy!"
+          else
+            echo "❌ Loki health check returned $LOKI_STATUS"
+            exit 1
+          fi
+          
+          # Check Grafana liveness
+          echo "Checking Grafana health..."
+          GRAFANA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/api/health || echo "500")
+          if [ "$GRAFANA_STATUS" = "200" ]; then
+            echo "✅ Grafana is UP & Healthy on port 3001!"
+          else
+            echo "❌ Grafana health check returned $GRAFANA_STATUS"
+            exit 1
+          fi
+        ENDSSH
