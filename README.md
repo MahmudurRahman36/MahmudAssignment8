@@ -7,55 +7,35 @@
 
 ---
 
-## 📂 1. Directory Structure
+## 📂 1. Directory Structure & Key Artifacts
 
-This repository contains all IaC code, observability configurations, automation scripts, and workflows needed to deploy and monitor a cloud server on AWS.
+This repository consolidates all infrastructure provisioning configurations (IaC), observability configurations, automation scripts, and workflows.
 
-```
-MahmudAssignment8/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml          # GitHub Actions CI/CD Pipeline (Lint, Deploy, Verify)
-├── terraform/
-│   ├── modules/
-│   │   ├── vpc/                # Custom VPC with single public subnet
-│   │   │   ├── main.tf
-│   │   │   ├── variables.tf
-│   │   │   └── outputs.tf
-│   │   ├── security-group/     # Security Group for ports (22, 3001, 9090, 3100)
-│   │   │   ├── main.tf
-│   │   │   ├── variables.tf
-│   │   │   └── outputs.tf
-│   │   └── ec2/                # Generic EC2 compute instance builder
-│   │       ├── main.tf
-│   │       ├── variables.tf
-│   │       └── outputs.tf
-│   └── environments/
-│       └── prod/
-│           ├── main.tf         # Master orchestrator combining modules
-│           ├── outputs.tf      # Deployment results (Host IP, SSH commands)
-│           ├── variables.tf    # Environmental variables configuration
-│           └── terraform.tfvars# Parameter definitions
-├── monitoring/
-│   ├── prometheus/
-│   │   └── prometheus.yml      # Prometheus configuration (Node Exporter scrape target)
-│   ├── loki/
-│   │   └── loki-config.yml     # Loki configuration (Filesystem storage)
-│   ├── promtail/
-│   │   └── promtail-config.yml # Promtail configuration (syslog & auth log scraping)
-│   ├── dashboards/
-│   │   └── system-observability-dashboard.json # Grafana system dashboard JSON model
-│   └── scripts/
-│       └── setup-monitoring.sh # Automated stack installer (Prometheus/Grafana/Loki/Exporters)
-├── screenshots/                # Directory placeholder for verification images
-└── README.md                   # Complete architectural and setup documentation
-```
+Below are the direct references to the key configuration files required for the assignment:
+
+### 🛠️ Infrastructure as Code (IaC)
+- **VPC Module Configuration**: [`terraform/modules/vpc/main.tf`](terraform/modules/vpc/main.tf) — Custom VPC, subnets, and gateways.
+- **Security Group Configuration**: [`terraform/modules/security-group/main.tf`](terraform/modules/security-group/main.tf) — Security group opening ports `22`, `3001`, `9090`, and `3100`.
+- **EC2 Instance Provisioning Module**: [`terraform/modules/ec2/main.tf`](terraform/modules/ec2/main.tf) — Dynamic Ubuntu server creation with GP3 disk encryption.
+- **Production Environment Main Orchestrator**: [`terraform/environments/prod/main.tf`](terraform/environments/prod/main.tf) — Main composition file.
+- **Production Variables**: [`terraform/environments/prod/variables.tf`](terraform/environments/prod/variables.tf)
+- **Production Outputs**: [`terraform/environments/prod/outputs.tf`](terraform/environments/prod/outputs.tf)
+
+### 📈 CI/CD Pipeline
+- **Deployment Pipeline Workflow**: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — GitHub Actions pipeline for validation, SSH deployment, and health check retries.
+
+### 📊 Observability Stack & Dashboard Configuration
+- **Grafana Dashboard Configuration Model**: [`monitoring/dashboards/system-observability-dashboard.json`](monitoring/dashboards/system-observability-dashboard.json) — Auto-imported dashboard JSON showing system metrics and Loki logs.
+- **Prometheus Configuration Scraper**: [`monitoring/prometheus/prometheus.yml`](monitoring/prometheus/prometheus.yml)
+- **Loki Log Aggregator Configuration**: [`monitoring/loki/loki-config.yml`](monitoring/loki/loki-config.yml)
+- **Promtail Log Shipper Configuration**: [`monitoring/promtail/promtail-config.yml`](monitoring/promtail/promtail-config.yml)
+- **Automated Monitoring Setup Script**: [`monitoring/scripts/setup-monitoring.sh`](monitoring/scripts/setup-monitoring.sh)
 
 ---
 
 ## 📐 2. System Architecture Topology
 
-The infrastructure deploys a single monitoring and compute server inside a custom VPC. All telemetry components run as native OS-level services managed by `systemd`.
+The architecture provisions a single monitoring and compute server inside a custom VPC. All telemetry components run as native OS-level services managed by `systemd`.
 
 ```mermaid
 graph TD
@@ -91,12 +71,6 @@ graph TD
 
 ## 💻 3. Provisioning Infrastructure (Terraform)
 
-Follow these steps to provision the cloud server using Terraform.
-
-### Prerequisites
-- **Terraform**: `>= 1.5.0` installed.
-- **AWS CLI**: Configured with valid IAM credentials.
-
 ### Step 1: Deploy Infrastructure
 1. Navigate to the production environment directory:
    ```bash
@@ -108,13 +82,11 @@ Follow these steps to provision the cloud server using Terraform.
    terraform validate
    terraform apply -auto-approve
    ```
-3. Copy the outputs. Note down the public IP address of the server.
+3. Note the public IP address output from the console.
 
 ---
 
 ## 🚀 4. CI/CD Deployment Pipeline (GitHub Actions)
-
-The repository automated pipeline validates configuration syntax and deploys the observability stack to the server via SSH.
 
 ### Secrets Configuration
 Go to your GitHub repository under **Settings > Secrets and Variables > Actions > Secrets** and save these 2 repository secrets:
@@ -131,17 +103,11 @@ git add .
 git commit -m "feat: complete observability stack configuration"
 git push origin main
 ```
-The automated runner will execute `.github/workflows/deploy.yml` to:
-1. Run Terraform formatting and validation tests.
-2. Connect to the EC2 server using SSH.
-3. Sync the configurations and run the `setup-monitoring.sh` installation script.
-4. Verify that Prometheus, Loki, and Grafana endpoints respond with healthy status codes.
+The pipeline automatically runs Terraform lint checks, connects to the host via SSH, deploys the stack configurations, and runs the robust liveness test loops.
 
 ---
 
 ## 📊 5. Observability Stack Details & Port Reference
-
-The installation script configures all services as native systemd units. Ports exposed:
 
 | Port | Service | Role | Notes |
 |---|---|---|---|
@@ -151,21 +117,27 @@ The installation script configures all services as native systemd units. Ports e
 | `9080` | Promtail | Log Shipper | Ships syslog & auth logs to Loki |
 | `9100` | Node Exporter | System Metrics | Exposes CPU, Memory, Disk, Network |
 
-### Auto-Provisioned Dashboards
-Grafana is pre-configured with a datasource pointing to local Prometheus and Loki services. The **System Observability Dashboard** is imported automatically:
-- **Stat Panels**: Real-time CPU usage, memory utilization, disk space, and server UP/DOWN state.
-- **Trend Charts**: High-resolution timeseries graphs for CPU/RAM and Network RX/TX metrics.
-- **Logs Stream**: Live terminal logs streamed directly from syslog and system auth services.
-
 ---
 
-## 📸 6. Verification & Evidence Catalog
+## 📸 6. Proof of Solution Working (Evidence Dashboard)
 
-Please capture and place screenshots in the `screenshots/` folder:
-1. **Terraform deployment**: Output showing successful resource provisioning.
-2. **CI/CD execution**: Successful GitHub Actions run showing complete setup and health validation.
-3. **Grafana dashboards**: Node Exporter metrics populated inside the Grafana UI.
-4. **Loki log visualization**: System logs panel populated with active server logs.
+The images below demonstrate that the infrastructure deployment, pipeline execution, system health metrics, and Loki log visualizer are fully operational.
+
+### A. Successful CI/CD Pipeline Execution
+Shows the GitHub Actions pipeline successfully completing the Terraform validation, deployment execution, and service health check verification.
+![Successful CI/CD Pipeline](screenshots/successful_pipeline.png)
+
+### B. Successful Terraform Deployment
+Shows the terminal or console output from `terraform apply` confirming successful provisioning of VPC, security group, and EC2 instance.
+![Successful Terraform Deployment](screenshots/terraform_deployment.png)
+
+### C. Grafana Dashboards displaying CPU, Memory, Disk, and Network Metrics
+Shows live system utilization stats rendering dynamically on the imported System Observability Dashboard.
+![Grafana Dashboard Metrics](screenshots/grafana_dashboard.png)
+
+### D. Loki Log Visualization
+Shows the log stream panel populated with logs routed from `syslog` and `auth.log` using Loki.
+![Loki Log Visualization](screenshots/loki_logs.png)
 
 ---
 
